@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog/1.7"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog/1.7
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-1.7.xsd">
+    <changeSet id="1" author="nasir">
+        <comment>Create accounts table</comment>
+        <createTable tableName="accounts">
+            <column name="id" autoIncrement="true" type="BIGINT"><constraints primaryKey="true"></constraints></column>
+            <column name="account_id" type="TEXT"/>
+            <column name="bank_id" type="TEXT"/>
+            <column name="account_type" type="TEXT"/>
+            <column name="institution" type="TEXT"/>
+            <column name="currency" type="TEXT"/>
+        </createTable>
+        <rollback>
+            <dropTable tableName="accounts"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="2" author="nasir">
+        <comment>Create transactions table</comment>
+        <createTable tableName="transactions">
+            <column name="id" type="TEXT"><constraints primaryKey="true"/> </column>
+            <column name="type" type="TEXT"/>
+            <column name="date_posted" type="DATETIME"/>
+            <column name="amount" type="TEXT"/>
+            <column name="name" type="TEXT"/>
+            <column name="memo" type="TEXT"/>
+            <column name="account_id" type="BIGINT"/>
+        </createTable>
+        <rollback>
+            <dropTable tableName="transactions"></dropTable>
+        </rollback>
+    </changeSet>
+    <changeSet id="3" author="nasir">
+        <addForeignKeyConstraint
+            baseTableName="transactions"
+            baseColumnNames="account_id"
+            referencedTableName="accounts"
+            referencedColumnNames="id"
+            constraintName="fk_account_id"
+        />
+        <rollback>
+            <dropForeignKeyConstraint constraintName="fk_account_id"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
