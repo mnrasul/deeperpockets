@@ -19,6 +19,9 @@ public class Account {
     private String institution;
     private String currency;
 
+    public Account(){
+
+    }
     public Account(final String accountId, final String bankId, final String accountType, final String institution, final String currency) {
         this.accountId = accountId;
         this.bankId = bankId;
