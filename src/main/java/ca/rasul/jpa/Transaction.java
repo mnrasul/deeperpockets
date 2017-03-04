@@ -28,10 +28,10 @@ public class Transaction {
     public Transaction(){
 
     }
-    public Transaction(final String id, final String amount, final String datePosted, final String name, final String memo, final String type, final Long accountId) throws ParseException {
+    public Transaction(final String id, final String amount, final Date datePosted, final String name, final String memo, final String type, final Long accountId) throws ParseException {
         this.id = id;
         this.amount = new BigDecimal(amount);
-        this.datePosted = dateformat.parse(datePosted);
+        this.datePosted = datePosted;
         this.name = name;
         this.memo = memo;
         this.type = type;

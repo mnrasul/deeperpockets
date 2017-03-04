@@ -1,9 +1,11 @@
 package ca.rasul;
 
+import ca.rasul.jpa.Account;
 import ca.rasul.jpa.AccountRepository;
 import ca.rasul.jpa.TransactionRepository;
 import com.webcohesion.ofx4j.domain.data.ResponseEnvelope;
 import com.webcohesion.ofx4j.domain.data.ResponseMessageSet;
+import com.webcohesion.ofx4j.domain.data.banking.BankAccountDetails;
 import com.webcohesion.ofx4j.domain.data.banking.BankStatementResponseTransaction;
 import com.webcohesion.ofx4j.domain.data.banking.BankingResponseMessageSet;
 import com.webcohesion.ofx4j.domain.data.common.Transaction;
@@ -25,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.util.List;
 import java.util.SortedSet;
 
@@ -63,18 +66,32 @@ public class DeeperpocketsApplication {
         };
     }
 
-    private void processBankTransactions(ResponseMessageSet messageSet) {
+    private void processBankTransactions(ResponseMessageSet messageSet) throws ParseException {
         if (!(messageSet instanceof BankingResponseMessageSet)) {
             return;
         }
         List<BankStatementResponseTransaction> statementResponses = ((BankingResponseMessageSet) messageSet).getStatementResponses();
         for (BankStatementResponseTransaction transaction : statementResponses) {
             LOG.info(transaction.getMessage().getAccount().getBankId() );
-            List<Transaction> transactions = transaction.getMessage().getTransactionList().getTransactions();
-            for (Transaction t: transactions) {
-//                LOG.info(t.getId() + t.getName() + t.getAmount());
+            Account account = createAccount(transaction.getMessage().getAccount());
+            Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(account.getAccountId(), account.getBankId());
+            if (byAccountIdAndBankId == null) {
+                byAccountIdAndBankId = accountRepository.save(account);
+            }
+
+            for (Transaction t: transaction.getMessage().getTransactionList().getTransactions()) {
+                if (!transactionRepository.exists(t.getId())) {
+                    ca.rasul.jpa.Transaction dbTransaction = new ca.rasul.jpa.Transaction(t.getId(),
+                            t.getAmount().toString(), t.getDatePosted(), t.getName(), t.getMemo(), t.getTransactionType().name(), byAccountIdAndBankId.getId());
+                    transactionRepository.save(dbTransaction);
+                }
             }
         }
+    }
+
+    private Account createAccount(final BankAccountDetails account) {
+        return new Account(account.getAccountNumber(),
+                account.getBankId(), account.getAccountType().name(), account.getRoutingNumber(), "USD");
     }
 
     private void processInvestmentAccountTransaction(ResponseMessageSet messageSet) {
