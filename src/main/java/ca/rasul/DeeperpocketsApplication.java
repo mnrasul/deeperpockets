@@ -60,7 +60,6 @@ public class DeeperpocketsApplication {
             File[] files = folder.listFiles(pathname -> pathname.getAbsolutePath().endsWith(".qfx"));
             for (File file : files) {
                 ResponseEnvelope unmarshal = unmarshaller.unmarshal(Files.newBufferedReader(Paths.get(file.getAbsolutePath())));
-                LOG.info(unmarshal.toString());
                 if (unmarshal != null) {
                     SortedSet<ResponseMessageSet> messageSets = unmarshal.getMessageSets();
                     for (ResponseMessageSet message : messageSets) {
@@ -84,14 +83,15 @@ public class DeeperpocketsApplication {
                 String accountId = split[0];
                 String bankId = split[1].substring(0, split[1].indexOf("="));
                 BigDecimal amount = new BigDecimal(s.substring(s.indexOf("=")+1));
-                LOG.info(amount.toString());
                 Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(accountId, bankId);
                 if (byAccountIdAndBankId != null){
                     try {
                         ca.rasul.jpa.Transaction transaction = new ca.rasul.jpa.Transaction(s+"opening-balance",
                                 amount, new Date(), "Opening balance adjustment", "Opening balance adjustment", "DEBIT",
                                 byAccountIdAndBankId.getId());
-                        transactionRepository.save(transaction);
+                        if (amount.doubleValue() != 0.0 ) {
+                            transactionRepository.save(transaction);
+                        }
                     } catch (ParseException e) {
                         LOG.error(e.getMessage());
                     }
@@ -108,7 +108,6 @@ public class DeeperpocketsApplication {
         int saved = 0;
         List<BankStatementResponseTransaction> statementResponses = ((BankingResponseMessageSet) messageSet).getStatementResponses();
         for (BankStatementResponseTransaction transaction : statementResponses) {
-            LOG.info(transaction.getMessage().getAccount().getBankId());
             Account account = createAccount(transaction.getMessage().getAccount());
             Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(account.getAccountId(), account.getBankId());
             if (byAccountIdAndBankId == null) {
@@ -129,9 +128,8 @@ public class DeeperpocketsApplication {
                 BigDecimal balance = new BigDecimal(ledgerBalance.getAmount());
                 Date date = ledgerBalance.getAsOfDate();
                 ca.rasul.jpa.Transaction interestAdjustment = new ca.rasul.jpa.Transaction(createId(account, date),
-                        networthOfAccount.add(balance).multiply(new BigDecimal(-1)), date, "interest paid", "interest paid. This is an adjusting entry added when a sync occurs, so is dependent on how frequently that is done", "DEBIT", account.getId());
+                        networthOfAccount.add(balance).negate(), date, "interest paid", "interest paid. This is an adjusting entry added when a sync occurs, so is dependent on how frequently that is done", "DEBIT", account.getId());
                 ca.rasul.jpa.Transaction save = transactionRepository.save(interestAdjustment);
-                LOG.info("CREDITLINE "+account.getId());
 
             }
         }
