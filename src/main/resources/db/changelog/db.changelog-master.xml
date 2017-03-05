@@ -33,7 +33,7 @@
             id text NOT NULL,
             type text,
             date_posted timestamp without time zone,
-            amount money,
+            amount numeric(1000,10),
             name text,
             memo text,
             account_id bigint,

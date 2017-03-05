@@ -8,6 +8,7 @@ import com.webcohesion.ofx4j.domain.data.ResponseMessageSet;
 import com.webcohesion.ofx4j.domain.data.banking.BankAccountDetails;
 import com.webcohesion.ofx4j.domain.data.banking.BankStatementResponseTransaction;
 import com.webcohesion.ofx4j.domain.data.banking.BankingResponseMessageSet;
+import com.webcohesion.ofx4j.domain.data.common.BalanceInfo;
 import com.webcohesion.ofx4j.domain.data.common.Transaction;
 import com.webcohesion.ofx4j.domain.data.investment.positions.InvestmentPositionList;
 import com.webcohesion.ofx4j.domain.data.investment.statements.InvestmentStatementResponse;
@@ -25,11 +26,16 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.ParseException;
+import java.util.Date;
 import java.util.List;
 import java.util.SortedSet;
+import java.util.stream.Stream;
+
+import static com.webcohesion.ofx4j.domain.data.banking.AccountType.CREDITLINE;
 
 @EnableJpaRepositories
 @SpringBootApplication
@@ -50,7 +56,7 @@ public class DeeperpocketsApplication {
 
         return input -> {
             AggregateUnmarshaller<ResponseEnvelope> unmarshaller = new AggregateUnmarshaller<>(ResponseEnvelope.class);
-            File folder = new File("src/main/resources");
+            File folder = new File("src/main/resources/qfx");
             File[] files = folder.listFiles(pathname -> pathname.getAbsolutePath().endsWith(".qfx"));
             for (File file : files) {
                 ResponseEnvelope unmarshal = unmarshaller.unmarshal(Files.newBufferedReader(Paths.get(file.getAbsolutePath())));
@@ -66,27 +72,74 @@ public class DeeperpocketsApplication {
         };
     }
 
+    @Bean
+    public CommandLineRunner importOpeningBalances() throws  Exception{
+        return (String... intput) -> {
+            Stream<String> stream = Files.lines(Paths.get("src/main/resources/opening-balance.properties"));
+            stream.parallel()
+                    .filter(s -> !s.contains("#"))
+                    .filter(s -> s.contains(","))
+                    .map(s -> s).forEach(s -> {
+                String[] split = s.split(",");
+                String accountId = split[0];
+                String bankId = split[1].substring(0, split[1].indexOf("="));
+                BigDecimal amount = new BigDecimal(s.substring(s.indexOf("=")+1));
+                LOG.info(amount.toString());
+                Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(accountId, bankId);
+                if (byAccountIdAndBankId != null){
+                    try {
+                        ca.rasul.jpa.Transaction transaction = new ca.rasul.jpa.Transaction(s+"opening-balance",
+                                amount, new Date(), "Opening balance adjustment", "Opening balance adjustment", "DEBIT",
+                                byAccountIdAndBankId.getId());
+                        transactionRepository.save(transaction);
+                    } catch (ParseException e) {
+                        LOG.error(e.getMessage());
+                    }
+//                    transactionRepository.save()
+                }
+            });
+        };
+    }
+
     private void processBankTransactions(ResponseMessageSet messageSet) throws ParseException {
         if (!(messageSet instanceof BankingResponseMessageSet)) {
             return;
         }
+        int saved = 0;
         List<BankStatementResponseTransaction> statementResponses = ((BankingResponseMessageSet) messageSet).getStatementResponses();
         for (BankStatementResponseTransaction transaction : statementResponses) {
-            LOG.info(transaction.getMessage().getAccount().getBankId() );
+            LOG.info(transaction.getMessage().getAccount().getBankId());
             Account account = createAccount(transaction.getMessage().getAccount());
             Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(account.getAccountId(), account.getBankId());
             if (byAccountIdAndBankId == null) {
                 byAccountIdAndBankId = accountRepository.save(account);
             }
 
-            for (Transaction t: transaction.getMessage().getTransactionList().getTransactions()) {
+            for (Transaction t : transaction.getMessage().getTransactionList().getTransactions()) {
                 if (!transactionRepository.exists(t.getId())) {
                     ca.rasul.jpa.Transaction dbTransaction = new ca.rasul.jpa.Transaction(t.getId(),
-                            t.getAmount().toString(), t.getDatePosted(), t.getName(), t.getMemo(), t.getTransactionType().name(), byAccountIdAndBankId.getId());
+                            new BigDecimal(t.getAmount()), t.getDatePosted(), t.getName(), t.getMemo(), t.getTransactionType().name(), byAccountIdAndBankId.getId());
                     transactionRepository.save(dbTransaction);
+                    saved++;
                 }
             }
+            if (transaction.getMessage().getAccount().getAccountType() == CREDITLINE){
+                BigDecimal networthOfAccount = transactionRepository.findNetworthOfAccount(account.getId());
+                BalanceInfo ledgerBalance = transaction.getMessage().getLedgerBalance();
+                BigDecimal balance = new BigDecimal(ledgerBalance.getAmount());
+                Date date = ledgerBalance.getAsOfDate();
+                ca.rasul.jpa.Transaction interestAdjustment = new ca.rasul.jpa.Transaction(createId(account, date),
+                        networthOfAccount.add(balance).multiply(new BigDecimal(-1)), date, "interest paid", "interest paid. This is an adjusting entry added when a sync occurs, so is dependent on how frequently that is done", "DEBIT", account.getId());
+                ca.rasul.jpa.Transaction save = transactionRepository.save(interestAdjustment);
+                LOG.info("CREDITLINE "+account.getId());
+
+            }
         }
+        LOG.info("New Transactions " + saved);
+    }
+
+    private String createId(final Account account, final Date date) {
+        return String.format("interestadjustment-%d-%d",account.getId(),date.getTime());
     }
 
     private Account createAccount(final BankAccountDetails account) {

@@ -1,12 +1,12 @@
 package ca.rasul.jpa;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * @author Nasir Rasul {@literal nasir@rasul.ca}
@@ -14,10 +14,14 @@ import java.util.Date;
 @Entity
 @Table(name = "transactions")
 public class Transaction {
+    @Transient
+    private final NumberFormat format = NumberFormat.getNumberInstance(Locale.US);
+
     private final static SimpleDateFormat dateformat = new SimpleDateFormat("yyyymmddhhmmss");
     @Id
     private String id;
 
+    @Column(precision = 1000,  scale = 10)
     private BigDecimal amount;
     private Date datePosted;
     private String name;
@@ -28,14 +32,17 @@ public class Transaction {
     public Transaction(){
 
     }
-    public Transaction(final String id, final String amount, final Date datePosted, final String name, final String memo, final String type, final Long accountId) throws ParseException {
+    public Transaction(final String id, final BigDecimal amount, final Date datePosted, final String name, final String memo, final String type, final Long accountId) throws ParseException {
         this.id = id;
-        this.amount = new BigDecimal(amount);
+//        this.amount = new BigDecimal(format.parse(amount).doubleValue());
         this.datePosted = datePosted;
         this.name = name;
         this.memo = memo;
         this.type = type;
         this.accountId = accountId;
+        this.amount = amount;
+
+        format.setGroupingUsed(true);
     }
 
     public String getId() {
@@ -46,12 +53,15 @@ public class Transaction {
         this.id = id;
     }
 
-    public BigDecimal getAmount() {
+    public Number getAmount() {
         return amount;
     }
 
     public void setAmount(final BigDecimal amount) {
         this.amount = amount;
+    }
+    public void setAmount(final String amount) throws ParseException {
+        this.amount = (BigDecimal)format.parse(amount);
     }
 
     public Date getDatePosted() {
