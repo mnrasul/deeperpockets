@@ -1,3 +1,4 @@
+src/main/resources/qfx/
 target/
 !.mvn/wrapper/maven-wrapper.jar
 
