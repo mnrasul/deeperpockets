@@ -126,11 +126,11 @@ public class DeeperpocketsApplication {
                 }
             }
             if (transaction.getMessage().getAccount().getAccountType() == CREDITLINE){
-                BigDecimal networthOfAccount = transactionRepository.findNetworthOfAccount(account.getId());
+                BigDecimal networthOfAccount = transactionRepository.findNetworthOfAccount(byAccountIdAndBankId.getId());
                 BalanceInfo ledgerBalance = transaction.getMessage().getLedgerBalance();
                 BigDecimal balance = new BigDecimal(ledgerBalance.getAmount());
                 Date date = ledgerBalance.getAsOfDate();
-                ca.rasul.jpa.Transaction interestAdjustment = new ca.rasul.jpa.Transaction(createId(account, date),
+                ca.rasul.jpa.Transaction interestAdjustment = new ca.rasul.jpa.Transaction(createId(byAccountIdAndBankId, date),
                         networthOfAccount.add(balance).negate(), date, "interest paid", "interest paid. This is an adjusting entry added when a sync occurs, so is dependent on how frequently that is done", "DEBIT", account.getId());
                 ca.rasul.jpa.Transaction save = transactionRepository.save(interestAdjustment);
 
