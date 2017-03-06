@@ -1,8 +1,6 @@
 package ca.rasul;
 
-import ca.rasul.jpa.Account;
-import ca.rasul.jpa.AccountRepository;
-import ca.rasul.jpa.TransactionRepository;
+import ca.rasul.jpa.*;
 import com.webcohesion.ofx4j.domain.data.ResponseEnvelope;
 import com.webcohesion.ofx4j.domain.data.ResponseMessageSet;
 import com.webcohesion.ofx4j.domain.data.banking.BankAccountDetails;
@@ -10,6 +8,7 @@ import com.webcohesion.ofx4j.domain.data.banking.BankStatementResponseTransactio
 import com.webcohesion.ofx4j.domain.data.banking.BankingResponseMessageSet;
 import com.webcohesion.ofx4j.domain.data.common.BalanceInfo;
 import com.webcohesion.ofx4j.domain.data.common.Transaction;
+import com.webcohesion.ofx4j.domain.data.investment.positions.BasePosition;
 import com.webcohesion.ofx4j.domain.data.investment.positions.InvestmentPositionList;
 import com.webcohesion.ofx4j.domain.data.investment.statements.InvestmentStatementResponse;
 import com.webcohesion.ofx4j.domain.data.investment.statements.InvestmentStatementResponseMessageSet;
@@ -47,6 +46,9 @@ public class DeeperpocketsApplication {
     @Autowired
     private TransactionRepository transactionRepository;
 
+    @Autowired
+    private InvestmentRepository investmentRepository;
+
     public static void main(String[] args) {
         SpringApplication.run(DeeperpocketsApplication.class, args);
     }
@@ -64,6 +66,7 @@ public class DeeperpocketsApplication {
                     SortedSet<ResponseMessageSet> messageSets = unmarshal.getMessageSets();
                     for (ResponseMessageSet message : messageSets) {
                         processBankTransactions(message);
+                        processInvestmentAccountTransaction(message);
                     }
                 }
 
@@ -152,6 +155,28 @@ public class DeeperpocketsApplication {
         InvestmentStatementResponseMessageSet messages = (InvestmentStatementResponseMessageSet) messageSet;
         InvestmentStatementResponse message = messages.getStatementResponse().getMessage();
         InvestmentPositionList positionList = message.getPositionList();
+        Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(message.getAccount().getAccountNumber(), message.getAccount().getBrokerId());
+        if (byAccountIdAndBankId == null){
+            byAccountIdAndBankId = new Account(message.getAccount().getAccountNumber(), message.getAccount().getBrokerId(),
+                    "INVESTMENT", message.getAccount().getBrokerId(), message.getCurrencyCode() );
+            byAccountIdAndBankId = accountRepository.save(byAccountIdAndBankId);
+        }
+
+        for (BasePosition position: positionList.getPositions()){
+            if (investmentRepository.findOne(position.getSecurityId().getUniqueId()) == null){
+                Investment investment = new Investment();
+                investment.setId(position.getSecurityId().getUniqueId());
+                investment.setAccountId(byAccountIdAndBankId.getId());
+                investment.setMarketValue(new BigDecimal(position.getMarketValue()));
+                investment.setMarketValueDate(position.getMarketValueDate());
+                investment.setType(position.getPositionType());
+                investment.setUnits(new BigDecimal(position.getUnits()));
+                investment.setUnitPrice(new BigDecimal(position.getUnitPrice()));
+                investment.setInvestmentReturn(investment.getInvestmentReturn());
+                investment.setInvestmentPercentage(investment.getInvestmentPercentage());
+                investmentRepository.save(investment);
+            }
+        }
 
 
     }

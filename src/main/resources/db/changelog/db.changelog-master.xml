@@ -47,4 +47,29 @@
             <sql>DROP TABLE IF EXISTS transactions;</sql>
         </rollback>
     </changeSet>
+
+
+    <changeSet id="3" author="nasir">
+        <sql>
+            CREATE TABLE investments(
+            id text NOT NULL,
+            type text,
+            units numeric(1000,5),
+            unit_price numeric(1000,10),
+            investment_return numeric(1000,10),
+            investment_percentage numeric(10,4),
+            market_value numeric(1000,10),
+            market_value_date timestamp without time zone,
+            account_id bigint,
+            CONSTRAINT pk_investments PRIMARY KEY (id),
+            CONSTRAINT fk_account_id FOREIGN KEY (account_id)
+            REFERENCES accounts (id) MATCH SIMPLE
+            ON UPDATE NO ACTION ON DELETE NO ACTION);
+        </sql>
+        <rollback>
+            <sql>
+                DROP TABLE IF EXISTS investments;
+            </sql>
+        </rollback>
+    </changeSet>
 </databaseChangeLog>
