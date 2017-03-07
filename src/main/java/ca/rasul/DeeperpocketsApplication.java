@@ -131,8 +131,11 @@ public class DeeperpocketsApplication {
                 BigDecimal balance = new BigDecimal(ledgerBalance.getAmount());
                 Date date = ledgerBalance.getAsOfDate();
                 ca.rasul.jpa.Transaction interestAdjustment = new ca.rasul.jpa.Transaction(createId(byAccountIdAndBankId, date),
-                        networthOfAccount.add(balance).negate(), date, "interest paid", "interest paid. This is an adjusting entry added when a sync occurs, so is dependent on how frequently that is done", "DEBIT", account.getId());
-                ca.rasul.jpa.Transaction save = transactionRepository.save(interestAdjustment);
+                        networthOfAccount.add(balance).negate(), date, "interest paid", "interest paid. This is an adjusting entry added when a sync occurs, so is dependent on how frequently that is done", "DEBIT", byAccountIdAndBankId.getId());
+                //only save if there's a significant difference
+                if (interestAdjustment.getAmount().doubleValue() < 0) {
+                    transactionRepository.save(interestAdjustment);
+                }
 
             }
         }
