@@ -12,6 +12,7 @@ import com.webcohesion.ofx4j.domain.data.investment.positions.BasePosition;
 import com.webcohesion.ofx4j.domain.data.investment.positions.InvestmentPositionList;
 import com.webcohesion.ofx4j.domain.data.investment.statements.InvestmentStatementResponse;
 import com.webcohesion.ofx4j.domain.data.investment.statements.InvestmentStatementResponseMessageSet;
+import com.webcohesion.ofx4j.domain.data.investment.statements.InvestmentStatementResponseTransaction;
 import com.webcohesion.ofx4j.io.AggregateUnmarshaller;
 import com.webcohesion.ofx4j.io.OFXParseException;
 import org.slf4j.Logger;
@@ -156,31 +157,32 @@ public class DeeperpocketsApplication {
             return;
         }
         InvestmentStatementResponseMessageSet messages = (InvestmentStatementResponseMessageSet) messageSet;
-        InvestmentStatementResponse message = messages.getStatementResponse().getMessage();
-        InvestmentPositionList positionList = message.getPositionList();
-        Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(message.getAccount().getAccountNumber(), message.getAccount().getBrokerId());
-        if (byAccountIdAndBankId == null){
-            byAccountIdAndBankId = new Account(message.getAccount().getAccountNumber(), message.getAccount().getBrokerId(),
-                    "INVESTMENT", message.getAccount().getBrokerId(), message.getCurrencyCode() );
-            byAccountIdAndBankId = accountRepository.save(byAccountIdAndBankId);
-        }
+        for (InvestmentStatementResponseTransaction investmentTransaction : messages.getStatementResponses()) {
+            InvestmentStatementResponse message = investmentTransaction.getMessage();
+            InvestmentPositionList positionList = message.getPositionList();
+            Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(message.getAccount().getAccountNumber(), message.getAccount().getBrokerId());
+            if (byAccountIdAndBankId == null) {
+                byAccountIdAndBankId = new Account(message.getAccount().getAccountNumber(), message.getAccount().getBrokerId(),
+                        "INVESTMENT", message.getAccount().getBrokerId(), message.getCurrencyCode());
+                byAccountIdAndBankId = accountRepository.save(byAccountIdAndBankId);
+            }
 
-        for (BasePosition position: positionList.getPositions()){
-            if (investmentRepository.findOne(position.getSecurityId().getUniqueId()) == null){
-                Investment investment = new Investment();
-                investment.setId(position.getSecurityId().getUniqueId());
-                investment.setAccountId(byAccountIdAndBankId.getId());
-                investment.setMarketValue(new BigDecimal(position.getMarketValue()));
-                investment.setMarketValueDate(position.getMarketValueDate());
-                investment.setType(position.getPositionType());
-                investment.setUnits(new BigDecimal(position.getUnits()));
-                investment.setUnitPrice(new BigDecimal(position.getUnitPrice()));
-                investment.setInvestmentReturn(investment.getInvestmentReturn());
-                investment.setInvestmentPercentage(investment.getInvestmentPercentage());
-                investmentRepository.save(investment);
+            for (BasePosition position : positionList.getPositions()) {
+                if (investmentRepository.findByIdAndAccountId(position.getSecurityId().getUniqueId(), byAccountIdAndBankId.getId()) == null) {
+                    Investment investment = new Investment();
+                    investment.setId(position.getSecurityId().getUniqueId());
+                    investment.setAccountId(byAccountIdAndBankId.getId());
+                    investment.setMarketValue(new BigDecimal(position.getMarketValue()));
+                    investment.setMarketValueDate(position.getMarketValueDate());
+                    investment.setType(position.getPositionType());
+                    investment.setUnits(new BigDecimal(position.getUnits()));
+                    investment.setUnitPrice(new BigDecimal(position.getUnitPrice()));
+                    investment.setInvestmentReturn(investment.getInvestmentReturn());
+                    investment.setInvestmentPercentage(investment.getInvestmentPercentage());
+                    investmentRepository.save(investment);
+                }
             }
         }
-
 
     }
 //    @Bean
