@@ -80,6 +80,12 @@
 			<artifactId>ofx4j</artifactId>
 			<version>1.8</version>
 		</dependency>
+
+        <dependency>
+            <groupId>com.github.darmstrong1</groupId>
+            <artifactId>jmortgage</artifactId>
+            <version>jmortgage-1.0.0</version>
+        </dependency>
 	</dependencies>
 
 	<build>
@@ -91,5 +97,11 @@
 		</plugins>
 	</build>
 
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
 
 </project>

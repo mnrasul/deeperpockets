@@ -25,6 +25,8 @@ public class Transaction {
     private BigDecimal amount;
     private Date datePosted;
     private String name;
+    private String category;
+    private String merchant;
     private String memo;
     private String type;
     private Long accountId;
@@ -32,7 +34,8 @@ public class Transaction {
     public Transaction(){
 
     }
-    public Transaction(final String id, final BigDecimal amount, final Date datePosted, final String name, final String memo, final String type, final Long accountId) throws ParseException {
+
+    public Transaction(final String id, final BigDecimal amount, final Date datePosted, final String name, final String category, final String merchant, final String memo, final String type, final Long accountId) throws ParseException {
         this.id = id;
 //        this.amount = new BigDecimal(format.parse(amount).doubleValue());
         this.datePosted = datePosted;
@@ -41,8 +44,13 @@ public class Transaction {
         this.type = type;
         this.accountId = accountId;
         this.amount = amount;
-
+        this.merchant = merchant;
+        this.category = category;
         format.setGroupingUsed(true);
+    }
+
+    public Transaction(final String id, final BigDecimal amount, final Date datePosted, final String name, final String memo, final String type, final Long accountId) throws ParseException {
+        this(id, amount, datePosted, name, null, null, memo, type, accountId);
     }
 
     public String getId() {
@@ -103,4 +111,20 @@ public class Transaction {
     public void setAccountId(final Long accountId) {
         this.accountId = accountId;
     }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(final String category) {
+        this.category = category;
+    }
+
+    public String getMerchant() {
+        return merchant;
+    }
+
+//    public void setMerchant(final String merchant) {
+//        this.merchant = merchant;
+//    }
 }

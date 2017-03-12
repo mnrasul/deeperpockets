@@ -31,12 +31,14 @@
             CREATE TABLE transactions
             (
             id text NOT NULL,
+            account_id bigint,
             type text,
             date_posted timestamp without time zone,
             amount numeric(1000,10),
             name text,
             memo text,
-            account_id bigint,
+            category text,
+            merchant text,
             CONSTRAINT pk_transactions PRIMARY KEY (id),
             CONSTRAINT fk_account_id FOREIGN KEY (account_id)
             REFERENCES accounts (id) MATCH SIMPLE

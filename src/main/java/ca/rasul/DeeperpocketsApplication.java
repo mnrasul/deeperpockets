@@ -1,5 +1,6 @@
 package ca.rasul;
 
+import ca.rasul.config.CategoryMapper;
 import ca.rasul.jpa.*;
 import com.webcohesion.ofx4j.domain.data.ResponseEnvelope;
 import com.webcohesion.ofx4j.domain.data.ResponseMessageSet;
@@ -18,6 +19,7 @@ import com.webcohesion.ofx4j.io.OFXParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -25,16 +27,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.NumberFormat;
 import java.text.ParseException;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.SortedSet;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static com.webcohesion.ofx4j.domain.data.banking.AccountType.CREDITLINE;
@@ -51,6 +51,9 @@ public class DeeperpocketsApplication {
 
     @Autowired
     private InvestmentRepository investmentRepository;
+
+    @Autowired
+    private CategoryMapper categoryMapper;
 
     public static void main(String[] args) {
         SpringApplication.run(DeeperpocketsApplication.class, args);
@@ -97,9 +100,11 @@ public class DeeperpocketsApplication {
                 Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(accountId, bankId);
                 if (byAccountIdAndBankId != null){
                     try {
+
                         ca.rasul.jpa.Transaction transaction = new ca.rasul.jpa.Transaction(s+"opening-balance",
-                                amount, new Date(), "Opening balance adjustment", "Opening balance adjustment", "DEBIT",
+                                amount, jan012017(), "Opening balance adjustment", "Opening balance adjustment", "DEBIT",
                                 byAccountIdAndBankId.getId());
+                        transaction.setCategory(categoryMapper.determineCategory(transaction.getMemo(), transaction.getName()));
                         if (amount.doubleValue() != 0.0 ) {
                             transactionRepository.save(transaction);
                         }
@@ -110,6 +115,14 @@ public class DeeperpocketsApplication {
                 }
             });
         };
+    }
+
+    private Date jan012017(){
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.YEAR, 2017);
+        calendar.set(Calendar.MONTH, 1);
+        calendar.set(Calendar.DAY_OF_MONTH,1);
+        return calendar.getTime();
     }
 
     private void processBankTransactions(ResponseMessageSet messageSet) throws ParseException {
@@ -129,6 +142,7 @@ public class DeeperpocketsApplication {
                 if (!transactionRepository.exists(t.getId())) {
                     ca.rasul.jpa.Transaction dbTransaction = new ca.rasul.jpa.Transaction(t.getId(),
                             new BigDecimal(t.getAmount()), t.getDatePosted(), t.getName(), t.getMemo(), t.getTransactionType().name(), byAccountIdAndBankId.getId());
+                    dbTransaction.setCategory(categoryMapper.determineCategory(dbTransaction.getMemo(), dbTransaction.getName()));
                     transactionRepository.save(dbTransaction);
                     saved++;
                 }
@@ -138,9 +152,11 @@ public class DeeperpocketsApplication {
                 BalanceInfo ledgerBalance = transaction.getMessage().getLedgerBalance();
                 BigDecimal balance = new BigDecimal(ledgerBalance.getAmount());
                 Date date = ledgerBalance.getAsOfDate();
+                String interestPaidMemo = "interest paid " + byAccountIdAndBankId.getAccountId();
                 ca.rasul.jpa.Transaction interestAdjustment = new ca.rasul.jpa.Transaction(createId(byAccountIdAndBankId, date),
-                        networthOfAccount.add(balance).negate(), date, "interest paid", "interest paid. This is an adjusting entry added when a sync occurs, so is dependent on how frequently that is done", "DEBIT", byAccountIdAndBankId.getId());
+                        networthOfAccount.add(balance).negate(), date, interestPaidMemo, null, "DEBIT", byAccountIdAndBankId.getId());
                 //only save if there's a significant difference
+                interestAdjustment.setCategory(categoryMapper.determineCategory(interestPaidMemo, null));
                 if (interestAdjustment.getAmount().doubleValue() < 0) {
                     transactionRepository.save(interestAdjustment);
                 }
@@ -190,6 +206,22 @@ public class DeeperpocketsApplication {
             }
         }
 
+    }
+
+    @Bean
+    @Qualifier("categoryMap")
+    public Map<String, String> getCategoryMap() throws IOException {
+        Map<String, String> categoryMap = new HashMap<>(1000);
+        Properties properties = new Properties();
+        properties.load(new FileInputStream(new File("src/main/resources/categories.properties")));
+        for (String property: properties.stringPropertyNames()){
+            String value = properties.getProperty(property);
+            String[] split = value.split(",");
+            for (String s: split){
+                categoryMap.put(s, property);
+            }
+        }
+        return categoryMap;
     }
 //    @Bean
 //    public CommandLineRunner importData() {
