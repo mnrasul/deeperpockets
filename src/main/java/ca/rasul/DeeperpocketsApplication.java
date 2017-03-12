@@ -29,9 +29,11 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
@@ -52,6 +54,11 @@ public class DeeperpocketsApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(DeeperpocketsApplication.class, args);
+    }
+
+    @Bean
+    public NumberFormat getCurrencyFormat(){
+        return NumberFormat.getCurrencyInstance(Locale.US);
     }
 
     @Bean
