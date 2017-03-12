@@ -1,9 +1,6 @@
 package ca.rasul.jpa;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -14,8 +11,8 @@ import java.util.Date;
 @Table(name = "investments")
 public class Investment {
     public static final BigDecimal ONE_HUNDRED = new BigDecimal(100);
-    @Id
-    private String id;
+    @EmbeddedId
+    private InvestmentsPrimaryKey id;
     private String type;
     @Column(precision = 1000,  scale = 5)
     private BigDecimal units;
@@ -28,28 +25,30 @@ public class Investment {
     @Column(precision = 1000,  scale = 10)
     private BigDecimal marketValue;
     private Date marketValueDate;
-    private Long accountId;
 
     public Investment(){
 
     }
 
     public Investment(final String id, final String type, final BigDecimal units, final BigDecimal unitPrice, final BigDecimal marketValue, final Date marketValueDate, final Long accountId) {
-        this.id = id;
+        this.id = new InvestmentsPrimaryKey(id, accountId);
         this.type = type;
         this.units = units;
         this.unitPrice = unitPrice;
         this.marketValue = marketValue;
         this.marketValueDate = marketValueDate;
-        this.accountId = accountId;
     }
 
-    public String getId() {
+    public InvestmentsPrimaryKey getId() {
         return id;
     }
 
-    public void setId(final String id) {
+    public void setId(final InvestmentsPrimaryKey id) {
         this.id = id;
+    }
+
+    public Long getAccountId(){
+        return getId().getAccountId();
     }
 
     public String getType() {
@@ -90,14 +89,6 @@ public class Investment {
 
     public void setMarketValueDate(final Date marketValueDate) {
         this.marketValueDate = marketValueDate;
-    }
-
-    public Long getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(final Long accountId) {
-        this.accountId = accountId;
     }
 
     public BigDecimal getInvestmentReturn(){

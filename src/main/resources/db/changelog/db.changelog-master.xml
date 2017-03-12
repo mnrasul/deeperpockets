@@ -53,6 +53,7 @@
         <sql>
             CREATE TABLE investments(
             id text NOT NULL,
+            account_id bigint,
             type text,
             units numeric(1000,5),
             unit_price numeric(1000,10),
@@ -60,8 +61,7 @@
             investment_percentage numeric(10,4),
             market_value numeric(1000,10),
             market_value_date timestamp without time zone,
-            account_id bigint,
-            CONSTRAINT pk_investments PRIMARY KEY (id),
+            CONSTRAINT pk_investments PRIMARY KEY (id, account_id),
             CONSTRAINT fk_account_id FOREIGN KEY (account_id)
             REFERENCES accounts (id) MATCH SIMPLE
             ON UPDATE NO ACTION ON DELETE NO ACTION);

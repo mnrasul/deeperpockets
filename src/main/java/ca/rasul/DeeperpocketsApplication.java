@@ -175,10 +175,9 @@ public class DeeperpocketsApplication {
             }
 
             for (BasePosition position : positionList.getPositions()) {
-                if (investmentRepository.findByIdAndAccountId(position.getSecurityId().getUniqueId(), byAccountIdAndBankId.getId()) == null) {
+                if (investmentRepository.findOne(new InvestmentsPrimaryKey(position.getSecurityId().getUniqueId(), byAccountIdAndBankId.getId())) == null) {
                     Investment investment = new Investment();
-                    investment.setId(position.getSecurityId().getUniqueId());
-                    investment.setAccountId(byAccountIdAndBankId.getId());
+                    investment.setId(new InvestmentsPrimaryKey(position.getSecurityId().getUniqueId(), byAccountIdAndBankId.getId()));
                     investment.setMarketValue(new BigDecimal(position.getMarketValue()));
                     investment.setMarketValueDate(position.getMarketValueDate());
                     investment.setType(position.getPositionType());
