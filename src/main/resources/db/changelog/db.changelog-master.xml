@@ -10,7 +10,7 @@
             CREATE TABLE accounts
             (
             id bigserial NOT NULL,
-            account_id text,
+            account_number text,
             bank_id text,
             account_type text,
             institution text,
@@ -31,7 +31,7 @@
             CREATE TABLE transactions
             (
             id text NOT NULL,
-            account_id bigint,
+            account_number bigint,
             type text,
             date_posted timestamp without time zone,
             amount numeric(1000,10),
@@ -40,7 +40,7 @@
             category text,
             merchant text,
             CONSTRAINT pk_transactions PRIMARY KEY (id),
-            CONSTRAINT fk_account_id FOREIGN KEY (account_id)
+            CONSTRAINT fk_account_number FOREIGN KEY (account_number)
             REFERENCES accounts (id) MATCH SIMPLE
             ON UPDATE NO ACTION ON DELETE NO ACTION
             );

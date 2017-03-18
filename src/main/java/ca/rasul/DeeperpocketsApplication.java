@@ -9,6 +9,9 @@ import com.webcohesion.ofx4j.domain.data.banking.BankStatementResponseTransactio
 import com.webcohesion.ofx4j.domain.data.banking.BankingResponseMessageSet;
 import com.webcohesion.ofx4j.domain.data.common.BalanceInfo;
 import com.webcohesion.ofx4j.domain.data.common.Transaction;
+import com.webcohesion.ofx4j.domain.data.creditcard.CreditCardAccountDetails;
+import com.webcohesion.ofx4j.domain.data.creditcard.CreditCardResponseMessageSet;
+import com.webcohesion.ofx4j.domain.data.creditcard.CreditCardStatementResponseTransaction;
 import com.webcohesion.ofx4j.domain.data.investment.positions.BasePosition;
 import com.webcohesion.ofx4j.domain.data.investment.positions.InvestmentPositionList;
 import com.webcohesion.ofx4j.domain.data.investment.statements.InvestmentStatementResponse;
@@ -60,7 +63,7 @@ public class DeeperpocketsApplication {
     }
 
     @Bean
-    public NumberFormat getCurrencyFormat(){
+    public NumberFormat getCurrencyFormat() {
         return NumberFormat.getCurrencyInstance(Locale.US);
     }
 
@@ -78,6 +81,7 @@ public class DeeperpocketsApplication {
                     for (ResponseMessageSet message : messageSets) {
                         processBankTransactions(message);
                         processInvestmentAccountTransaction(message);
+                        processCreditCardAccount(message);
                     }
                 }
 
@@ -85,8 +89,32 @@ public class DeeperpocketsApplication {
         };
     }
 
+    private void processCreditCardAccount(final ResponseMessageSet message) {
+        if (!(message instanceof CreditCardResponseMessageSet)) {
+            return;
+        }
+        CreditCardResponseMessageSet cardSet = (CreditCardResponseMessageSet) message;
+        List<CreditCardStatementResponseTransaction> statementResponses = cardSet.getStatementResponses();
+        for (CreditCardStatementResponseTransaction transaction : statementResponses) {
+            Account account = createAccount(transaction.getMessage().getAccount());
+            Account byAccountIdAndBankId = accountRepository.findByAccountNumberAndBankId(account.getAccountNumber(), account.getBankId());
+            if (byAccountIdAndBankId == null) {
+                byAccountIdAndBankId = accountRepository.save(account);
+            }
+            LOG.info(String.valueOf(byAccountIdAndBankId.getId()));
+        }
+    }
+
+    private Account createAccount(final CreditCardAccountDetails account) {
+        return Account.builder()
+                .accountNumber(account.getAccountNumber())
+                .bankId(account.getAccountKey())
+                .accountType("CREDITCARD")
+                .currency("USD").build();
+    }
+
     @Bean
-    public CommandLineRunner importOpeningBalances() throws  Exception{
+    public CommandLineRunner importOpeningBalances() throws Exception {
         return (String... intput) -> {
             Stream<String> stream = Files.lines(Paths.get("src/main/resources/opening-balance.properties"));
             stream.parallel()
@@ -96,16 +124,16 @@ public class DeeperpocketsApplication {
                 String[] split = s.split(",");
                 String accountId = split[0];
                 String bankId = split[1].substring(0, split[1].indexOf("="));
-                BigDecimal amount = new BigDecimal(s.substring(s.indexOf("=")+1));
-                Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(accountId, bankId);
-                if (byAccountIdAndBankId != null){
+                BigDecimal amount = new BigDecimal(s.substring(s.indexOf("=") + 1));
+                Account byAccountIdAndBankId = accountRepository.findByAccountNumberAndBankId(accountId, bankId);
+                if (byAccountIdAndBankId != null) {
                     try {
 
-                        ca.rasul.jpa.Transaction transaction = new ca.rasul.jpa.Transaction(s+"opening-balance",
+                        ca.rasul.jpa.Transaction transaction = new ca.rasul.jpa.Transaction(s + "opening-balance",
                                 amount, jan012017(), "Opening balance adjustment", "Opening balance adjustment", "DEBIT",
                                 byAccountIdAndBankId.getId());
                         transaction.setCategory(categoryMapper.determineCategory(transaction.getMemo(), transaction.getName()));
-                        if (amount.doubleValue() != 0.0 ) {
+                        if (amount.doubleValue() != 0.0) {
                             transactionRepository.save(transaction);
                         }
                     } catch (ParseException e) {
@@ -117,11 +145,11 @@ public class DeeperpocketsApplication {
         };
     }
 
-    private Date jan012017(){
+    private Date jan012017() {
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.YEAR, 2017);
         calendar.set(Calendar.MONTH, 1);
-        calendar.set(Calendar.DAY_OF_MONTH,1);
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
         return calendar.getTime();
     }
 
@@ -133,7 +161,7 @@ public class DeeperpocketsApplication {
         List<BankStatementResponseTransaction> statementResponses = ((BankingResponseMessageSet) messageSet).getStatementResponses();
         for (BankStatementResponseTransaction transaction : statementResponses) {
             Account account = createAccount(transaction.getMessage().getAccount());
-            Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(account.getAccountId(), account.getBankId());
+            Account byAccountIdAndBankId = accountRepository.findByAccountNumberAndBankId(account.getAccountNumber(), account.getBankId());
             if (byAccountIdAndBankId == null) {
                 byAccountIdAndBankId = accountRepository.save(account);
             }
@@ -147,12 +175,12 @@ public class DeeperpocketsApplication {
                     saved++;
                 }
             }
-            if (transaction.getMessage().getAccount().getAccountType() == CREDITLINE){
+            if (transaction.getMessage().getAccount().getAccountType() == CREDITLINE) {
                 BigDecimal networthOfAccount = transactionRepository.findNetworthOfAccount(byAccountIdAndBankId.getId());
                 BalanceInfo ledgerBalance = transaction.getMessage().getLedgerBalance();
                 BigDecimal balance = new BigDecimal(ledgerBalance.getAmount());
                 Date date = ledgerBalance.getAsOfDate();
-                String interestPaidMemo = "interest paid " + byAccountIdAndBankId.getAccountId();
+                String interestPaidMemo = "interest paid " + byAccountIdAndBankId.getAccountNumber();
                 ca.rasul.jpa.Transaction interestAdjustment = new ca.rasul.jpa.Transaction(createId(byAccountIdAndBankId, date),
                         networthOfAccount.add(balance).negate(), date, interestPaidMemo, null, "DEBIT", byAccountIdAndBankId.getId());
                 //only save if there's a significant difference
@@ -167,12 +195,13 @@ public class DeeperpocketsApplication {
     }
 
     private String createId(final Account account, final Date date) {
-        return String.format("interestadjustment-%d-%d",account.getId(),date.getTime());
+        return String.format("interestadjustment-%d-%d", account.getId(), date.getTime());
     }
 
     private Account createAccount(final BankAccountDetails account) {
-        return new Account(account.getAccountNumber(),
-                account.getBankId(), account.getAccountType().name(), account.getRoutingNumber(), "USD");
+        return Account.builder().accountNumber(account.getAccountNumber())
+                .bankId(account.getBankId()).accountType(account.getAccountType().name())
+                .institution(account.getRoutingNumber()).currency("USD").build();
     }
 
     private void processInvestmentAccountTransaction(ResponseMessageSet messageSet) {
@@ -183,10 +212,14 @@ public class DeeperpocketsApplication {
         for (InvestmentStatementResponseTransaction investmentTransaction : messages.getStatementResponses()) {
             InvestmentStatementResponse message = investmentTransaction.getMessage();
             InvestmentPositionList positionList = message.getPositionList();
-            Account byAccountIdAndBankId = accountRepository.findByAccountIdAndBankId(message.getAccount().getAccountNumber(), message.getAccount().getBrokerId());
+            Account byAccountIdAndBankId = accountRepository.findByAccountNumberAndBankId(message.getAccount().getAccountNumber(), message.getAccount().getBrokerId());
             if (byAccountIdAndBankId == null) {
-                byAccountIdAndBankId = new Account(message.getAccount().getAccountNumber(), message.getAccount().getBrokerId(),
-                        "INVESTMENT", message.getAccount().getBrokerId(), message.getCurrencyCode());
+                byAccountIdAndBankId = Account.builder()
+                .accountNumber(message.getAccount().getAccountNumber())
+                        .bankId(message.getAccount().getBrokerId())
+                        .accountType("INVESTMENT")
+                        .institution(message.getAccount().getBrokerId())
+                        .currency(message.getCurrencyCode()).build();
                 byAccountIdAndBankId = accountRepository.save(byAccountIdAndBankId);
             }
 
@@ -214,10 +247,10 @@ public class DeeperpocketsApplication {
         Map<String, String> categoryMap = new HashMap<>(1000);
         Properties properties = new Properties();
         properties.load(new FileInputStream(new File("src/main/resources/categories.properties")));
-        for (String property: properties.stringPropertyNames()){
+        for (String property : properties.stringPropertyNames()) {
             String value = properties.getProperty(property);
             String[] split = value.split(",");
-            for (String s: split){
+            for (String s : split) {
                 categoryMap.put(s, property);
             }
         }
@@ -267,11 +300,11 @@ public class DeeperpocketsApplication {
 //                } else {
 ////                        System.out.println(transaction);
 //                    if (bankAccount == null) {
-//                        if (accountRepository.findByAccountIdAndBankId(bank.getAccountId(), bank.getBankId()) == null) {
-//                            bankAccount = new Account(bank.getAccountId(), bank.getBankId(), bank.getAccountType(), fi.getBank(), fi.getBankId());
+//                        if (accountRepository.findByAccountIdAndBankId(bank.getAccountNumber(), bank.getBankId()) == null) {
+//                            bankAccount = new Account(bank.getAccountNumber(), bank.getBankId(), bank.getAccountType(), fi.getBank(), fi.getBankId());
 //                            accountRepository.save(bankAccount);
 //                        }
-//                        bankAccount = accountRepository.findByAccountIdAndBankId(bank.getAccountId(), bank.getBankId());
+//                        bankAccount = accountRepository.findByAccountIdAndBankId(bank.getAccountNumber(), bank.getBankId());
 //                    }
 //                    if (!transactionRepository.exists(transaction.getTransactionId())) {
 //                        transactionRepository.save(new Transaction(transaction.getTransactionId(), transaction.getTransactionAmount(),
@@ -306,7 +339,7 @@ public class DeeperpocketsApplication {
 //                bank.setBankId(pair.getValue());
 //            }
 //            if (pair.getKey().equals("ACCTID")) {
-//                bank.setAccountId(pair.getValue());
+//                bank.setAccountNumber(pair.getValue());
 //            }
 //            if (pair.getKey().equals("ACCTTYPE")) {
 //                bank.setAccountType(pair.getValue());

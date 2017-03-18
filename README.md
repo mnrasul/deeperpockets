@@ -1,6 +1,6 @@
 accounts
 - id
-- accountId
+- accountNumber
 - bankId
 - accountType
 - financialInstitution
