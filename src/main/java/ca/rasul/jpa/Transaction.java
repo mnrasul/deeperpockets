@@ -1,17 +1,15 @@
 package ca.rasul.jpa;
 
+import lombok.Builder;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.math.BigDecimal;
-import java.text.NumberFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Locale;
 
 /**
  * @author Nasir Rasul {@literal nasir@rasul.ca}
@@ -19,14 +17,14 @@ import java.util.Locale;
 @Entity
 @Table(name = "transactions")
 @Data
-@Getter
-@Setter
 @NoArgsConstructor
+@Builder
 public class Transaction {
-    @Transient
-    private final NumberFormat format = NumberFormat.getNumberInstance(Locale.US);
-
-    private final static SimpleDateFormat dateformat = new SimpleDateFormat("yyyymmddhhmmss");
+//    @Transient
+//    private final NumberFormat format = NumberFormat.getNumberInstance(Locale.US);
+//
+//    @Transient
+//    private final static SimpleDateFormat dateformat = new SimpleDateFormat("yyyymmddhhmmss");
     @Id
     private String id;
 
@@ -40,9 +38,8 @@ public class Transaction {
     private String type;
     private Long accountNumber;
 
-    public Transaction(final String id, final BigDecimal amount, final Date datePosted, final String name, final String category, final String merchant, final String memo, final String type, final Long accountNumber) throws ParseException {
+    public Transaction(final String id, final BigDecimal amount, final Date datePosted, final String name, final String category, final String merchant, final String memo, final String type, final Long accountNumber) {
         this.id = id;
-//        this.amount = new BigDecimal(format.parse(amount).doubleValue());
         this.datePosted = datePosted;
         this.name = name;
         this.memo = memo;
@@ -51,17 +48,10 @@ public class Transaction {
         this.amount = amount;
         this.merchant = merchant;
         this.category = category;
-        format.setGroupingUsed(true);
+//        format.setGroupingUsed(true);
     }
 
-    public Transaction(final String id, final BigDecimal amount, final Date datePosted, final String name, final String memo, final String type, final Long accountNumber) throws ParseException {
+    public Transaction(final String id, final BigDecimal amount, final Date datePosted, final String name, final String memo, final String type, final Long accountNumber) {
         this(id, amount, datePosted, name, null, null, memo, type, accountNumber);
     }
-
-//    public void setAmount(final BigDecimal amount) {
-//        this.amount = amount;
-//    }
-//    public void setAmount(final String amount) throws ParseException {
-//        this.amount = (BigDecimal)format.parse(amount);
-//    }
 }

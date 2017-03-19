@@ -14,7 +14,7 @@ public class BankIdentificationTest {
         Assert.notNull(bankIdentification);
         Assert.notNull(bankIdentification.getAccountType());
         Assert.notNull(bankIdentification.getBankName());
-        Assert.notNull(bankIdentification.getCardType());
-        Assert.notNull(bankIdentification.getLocale());
+        Assert.notNull(bankIdentification.getIssuer());
+        Assert.notNull(bankIdentification.getCurrency());
     }
 }

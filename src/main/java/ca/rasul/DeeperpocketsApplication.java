@@ -27,6 +27,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import java.io.File;
@@ -44,6 +45,8 @@ import static com.webcohesion.ofx4j.domain.data.banking.AccountType.CREDITLINE;
 
 @EnableJpaRepositories
 @SpringBootApplication
+@ComponentScan("ca.rasul")
+
 public class DeeperpocketsApplication {
     private static final Logger LOG = LoggerFactory.getLogger(DeeperpocketsApplication.class);
     @Autowired
@@ -60,6 +63,18 @@ public class DeeperpocketsApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(DeeperpocketsApplication.class, args);
+    }
+
+    public Map<String, BankIdentification> bankIdentificationMap() throws IOException {
+        HashMap<String, BankIdentification> map = new HashMap<>();
+        Stream<String> stream = Files.lines(Paths.get("src/main/resources/bin.properties"));
+        stream.parallel()
+                .filter(s -> !s.contains("#"))
+                .map(s -> s).forEach(s -> {
+            String[] split = s.split("=");
+            map.put(split[0], BankIdentification.createFromCSV(split[1]));
+        });
+        return map;
     }
 
     @Bean
@@ -89,10 +104,11 @@ public class DeeperpocketsApplication {
         };
     }
 
-    private void processCreditCardAccount(final ResponseMessageSet message) {
+    private void processCreditCardAccount(final ResponseMessageSet message) throws IOException {
         if (!(message instanceof CreditCardResponseMessageSet)) {
             return;
         }
+        Map<String, BankIdentification> stringBankIdentificationMap = bankIdentificationMap();
         CreditCardResponseMessageSet cardSet = (CreditCardResponseMessageSet) message;
         List<CreditCardStatementResponseTransaction> statementResponses = cardSet.getStatementResponses();
         for (CreditCardStatementResponseTransaction transaction : statementResponses) {
@@ -101,16 +117,32 @@ public class DeeperpocketsApplication {
             if (byAccountIdAndBankId == null) {
                 byAccountIdAndBankId = accountRepository.save(account);
             }
+            for (Transaction t : transaction.getMessage().getTransactionList().getTransactions()) {
+                if (!transactionRepository.exists(t.getId())) {
+                    ca.rasul.jpa.Transaction ccTransaction = ca.rasul.jpa.Transaction.builder()
+                            .accountNumber(byAccountIdAndBankId.getId())
+                            .amount(t.getBigDecimalAmount())
+                            .datePosted(t.getDatePosted())
+                            .id(t.getId())
+                            .memo(t.getMemo())
+                            .name(t.getName())
+                            .type(t.getTransactionType().name())
+                            .build();
+                    transactionRepository.save(ccTransaction);
+                }
+            }
             LOG.info(String.valueOf(byAccountIdAndBankId.getId()));
         }
     }
 
-    private Account createAccount(final CreditCardAccountDetails account) {
+    private Account createAccount(final CreditCardAccountDetails account) throws IOException {
+        Map<String, BankIdentification> bankIdentificationMap = bankIdentificationMap();
+        BankIdentification bankIdentification = bankIdentificationMap.get(account.getAccountNumber().substring(0, 6));
         return Account.builder()
                 .accountNumber(account.getAccountNumber())
-                .bankId(account.getAccountKey())
-                .accountType("CREDITCARD")
-                .currency("USD").build();
+                .bankId(bankIdentification.getBankName())
+                .accountType(bankIdentification.getAccountType())
+                .currency(bankIdentification.getCurrency()).build();
     }
 
     @Bean
@@ -127,17 +159,12 @@ public class DeeperpocketsApplication {
                 BigDecimal amount = new BigDecimal(s.substring(s.indexOf("=") + 1));
                 Account byAccountIdAndBankId = accountRepository.findByAccountNumberAndBankId(accountId, bankId);
                 if (byAccountIdAndBankId != null) {
-                    try {
-
-                        ca.rasul.jpa.Transaction transaction = new ca.rasul.jpa.Transaction(s + "opening-balance",
-                                amount, jan012017(), "Opening balance adjustment", "Opening balance adjustment", "DEBIT",
-                                byAccountIdAndBankId.getId());
-                        transaction.setCategory(categoryMapper.determineCategory(transaction.getMemo(), transaction.getName()));
-                        if (amount.doubleValue() != 0.0) {
-                            transactionRepository.save(transaction);
-                        }
-                    } catch (ParseException e) {
-                        LOG.error(e.getMessage());
+                    ca.rasul.jpa.Transaction transaction = new ca.rasul.jpa.Transaction(s + "opening-balance",
+                            amount, jan012017(), "Opening balance adjustment", "Opening balance adjustment", "DEBIT",
+                            byAccountIdAndBankId.getId());
+                    transaction.setCategory(categoryMapper.determineCategory(transaction.getMemo(), transaction.getName()));
+                    if (amount.doubleValue() != 0.0) {
+                        transactionRepository.save(transaction);
                     }
 //                    transactionRepository.save()
                 }
@@ -215,7 +242,7 @@ public class DeeperpocketsApplication {
             Account byAccountIdAndBankId = accountRepository.findByAccountNumberAndBankId(message.getAccount().getAccountNumber(), message.getAccount().getBrokerId());
             if (byAccountIdAndBankId == null) {
                 byAccountIdAndBankId = Account.builder()
-                .accountNumber(message.getAccount().getAccountNumber())
+                        .accountNumber(message.getAccount().getAccountNumber())
                         .bankId(message.getAccount().getBrokerId())
                         .accountType("INVESTMENT")
                         .institution(message.getAccount().getBrokerId())
