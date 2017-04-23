@@ -24,10 +24,10 @@ public class Networth {
     @Autowired private AccountRepository accountRepository;
     @Autowired private TransactionRepository  transactionRepository;
 
-    @GET
-    public String computeNetworth(){
-        return  currencyFormatter.format(transactionRepository.findNetworthOfAssets().add(investmentRepository.findNetworthOfInvestments()));
-    }
+//    @GET
+//    public String computeNetworth(){
+//        return  currencyFormatter.format(transactionRepository.findNetworthOfAssets().add(investmentRepository.findNetworthOfInvestments()));
+//    }
 
     @GET
     @Path("loans")

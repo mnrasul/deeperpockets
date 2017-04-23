@@ -11,7 +11,6 @@ import co.da.jmtg.pmt.PmtCalculator;
 import co.da.jmtg.pmt.PmtCalculators;
 import co.da.jmtg.pmt.PmtPeriod;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webcohesion.ofx4j.domain.data.ResponseEnvelope;
 import com.webcohesion.ofx4j.domain.data.ResponseMessageSet;
 import com.webcohesion.ofx4j.domain.data.banking.BankAccountDetails;
 import com.webcohesion.ofx4j.domain.data.banking.BankStatementResponseTransaction;
@@ -26,13 +25,10 @@ import com.webcohesion.ofx4j.domain.data.investment.positions.InvestmentPosition
 import com.webcohesion.ofx4j.domain.data.investment.statements.InvestmentStatementResponse;
 import com.webcohesion.ofx4j.domain.data.investment.statements.InvestmentStatementResponseMessageSet;
 import com.webcohesion.ofx4j.domain.data.investment.statements.InvestmentStatementResponseTransaction;
-import com.webcohesion.ofx4j.io.AggregateUnmarshaller;
-import com.webcohesion.ofx4j.io.OFXParseException;
 import lombok.extern.slf4j.Slf4j;
 import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -94,27 +90,27 @@ public class DeeperpocketsApplication {
         return NumberFormat.getCurrencyInstance(Locale.US);
     }
 
-    @Bean
-    public CommandLineRunner testOfxImport() throws IOException, OFXParseException {
-
-        return input -> {
-            AggregateUnmarshaller<ResponseEnvelope> unmarshaller = new AggregateUnmarshaller<>(ResponseEnvelope.class);
-            File folder = new File("src/main/resources/qfx");
-            File[] files = folder.listFiles(pathname -> pathname.getAbsolutePath().endsWith(".qfx"));
-            for (File file : files) {
-                ResponseEnvelope unmarshal = unmarshaller.unmarshal(Files.newBufferedReader(Paths.get(file.getAbsolutePath())));
-                if (unmarshal != null) {
-                    SortedSet<ResponseMessageSet> messageSets = unmarshal.getMessageSets();
-                    for (ResponseMessageSet message : messageSets) {
-                        processBankTransactions(message);
-                        processInvestmentAccountTransaction(message);
-                        processCreditCardAccount(message);
-                    }
-                }
-
-            }
-        };
-    }
+//    @Bean
+//    public CommandLineRunner testOfxImport() throws IOException, OFXParseException {
+//
+//        return input -> {
+//            AggregateUnmarshaller<ResponseEnvelope> unmarshaller = new AggregateUnmarshaller<>(ResponseEnvelope.class);
+//            File folder = new File("src/main/resources/qfx");
+//            File[] files = folder.listFiles(pathname -> pathname.getAbsolutePath().endsWith(".qfx"));
+//            for (File file : files) {
+//                ResponseEnvelope unmarshal = unmarshaller.unmarshal(Files.newBufferedReader(Paths.get(file.getAbsolutePath())));
+//                if (unmarshal != null) {
+//                    SortedSet<ResponseMessageSet> messageSets = unmarshal.getMessageSets();
+//                    for (ResponseMessageSet message : messageSets) {
+//                        processBankTransactions(message);
+//                        processInvestmentAccountTransaction(message);
+//                        processCreditCardAccount(message);
+//                    }
+//                }
+//
+//            }
+//        };
+//    }
 
     private void processCreditCardAccount(final ResponseMessageSet message) throws IOException {
         if (!(message instanceof CreditCardResponseMessageSet)) {
@@ -157,32 +153,32 @@ public class DeeperpocketsApplication {
                 .currency(bankIdentification.getCurrency()).build();
     }
 
-    @Bean
-    public CommandLineRunner importOpeningBalances() throws Exception {
-        return (String... intput) -> {
-            Stream<String> stream = Files.lines(Paths.get("src/main/resources/opening-balance.properties"));
-            stream.parallel()
-                    .filter(s -> !s.contains("#"))
-                    .filter(s -> s.contains(","))
-                    .map(s -> s).forEach(s -> {
-                String[] split = s.split(",");
-                String accountId = split[0];
-                String bankId = split[1].substring(0, split[1].indexOf("="));
-                BigDecimal amount = new BigDecimal(s.substring(s.indexOf("=") + 1));
-                Account byAccountIdAndBankId = accountRepository.findByAccountNumberAndBankId(accountId, bankId);
-                if (byAccountIdAndBankId != null) {
-                    ca.rasul.jpa.Transaction transaction = new ca.rasul.jpa.Transaction(s + "opening-balance",
-                            amount, jan012017(), "Opening balance adjustment", "Opening balance adjustment", "DEBIT",
-                            byAccountIdAndBankId.getId());
-                    transaction.setCategory(categoryMapper.determineCategory(transaction.getMemo(), transaction.getName()));
-                    if (amount.doubleValue() != 0.0) {
-                        transactionRepository.save(transaction);
-                    }
-//                    transactionRepository.save()
-                }
-            });
-        };
-    }
+//    @Bean
+//    public CommandLineRunner importOpeningBalances() throws Exception {
+//        return (String... intput) -> {
+//            Stream<String> stream = Files.lines(Paths.get("src/main/resources/opening-balance.properties"));
+//            stream.parallel()
+//                    .filter(s -> !s.contains("#"))
+//                    .filter(s -> s.contains(","))
+//                    .map(s -> s).forEach(s -> {
+//                String[] split = s.split(",");
+//                String accountId = split[0];
+//                String bankId = split[1].substring(0, split[1].indexOf("="));
+//                BigDecimal amount = new BigDecimal(s.substring(s.indexOf("=") + 1));
+//                Account byAccountIdAndBankId = accountRepository.findByAccountNumberAndBankId(accountId, bankId);
+//                if (byAccountIdAndBankId != null) {
+//                    ca.rasul.jpa.Transaction transaction = new ca.rasul.jpa.Transaction(s + "opening-balance",
+//                            amount, jan012017(), "Opening balance adjustment", "Opening balance adjustment", "DEBIT",
+//                            byAccountIdAndBankId.getId());
+//                    transaction.setCategory(categoryMapper.determineCategory(transaction.getMemo(), transaction.getName()));
+//                    if (amount.doubleValue() != 0.0) {
+//                        transactionRepository.save(transaction);
+//                    }
+////                    transactionRepository.save()
+//                }
+//            });
+//        };
+//    }
 
     private Date jan012017() {
         Calendar calendar = Calendar.getInstance();
