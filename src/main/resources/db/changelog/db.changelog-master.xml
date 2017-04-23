@@ -74,4 +74,17 @@
             </sql>
         </rollback>
     </changeSet>
+    <changeSet id="4" author="nasir">
+        <sql>
+            CREATE TABLE positions(
+                id serial,
+                account text,
+                ticker text,
+                purchase_date timestamp without time zone,
+                purchase_price numeric (1000,10),
+                quantity integer,
+                cost_basis numeric (1000,10)
+            );
+        </sql>
+    </changeSet>
 </databaseChangeLog>

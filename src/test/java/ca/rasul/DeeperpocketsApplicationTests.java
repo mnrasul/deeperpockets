@@ -7,14 +7,13 @@ import co.da.jmtg.amort.PmtKeys;
 import co.da.jmtg.pmt.PmtCalculator;
 import co.da.jmtg.pmt.PmtCalculators;
 import co.da.jmtg.pmt.PmtPeriod;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-//@RunWith(SpringRunner.class)
+//@RunWith(Sprimvn cngRunner.class)
 //@SpringBootTest
+@Slf4j
 public class DeeperpocketsApplicationTests {
-    private static final Logger LOG = LoggerFactory.getLogger(DeeperpocketsApplication.class);
 
     @Test
 	public void contextLoads() {
@@ -31,8 +30,8 @@ public class DeeperpocketsApplicationTests {
         FixedAmortizationCalculator amortCalculator1 = FixedAmortizationCalculators
                 .getDefaultFixedAmortizationCalculator(
                         pmtCalculator1, pmtKey1);
-        LOG.info(pmtKey1.getKeys().toString());
-        LOG.info("Payment : " +pmtCalculator1.getPmt());
+        log.info(pmtKey1.getKeys().toString());
+        log.info("Payment : " +pmtCalculator1.getPmt());
     }
 
     @Test

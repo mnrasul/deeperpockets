@@ -1,0 +1,10 @@
+[
+  {
+    "accountNumber": "700869050",
+    "bankId": "321177722",
+    "originalPrincipal": 34091.45,
+    "interestRate" : 2.045,
+    "term": 35,
+    "dateOfFirstPayment": "2016-06-21"
+  }
+]
