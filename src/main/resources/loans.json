@@ -1,10 +1,35 @@
 [
   {
-    "accountNumber": "700869050",
+    "accountNumber": "auto-loan",
     "bankId": "321177722",
     "originalPrincipal": 34091.45,
-    "interestRate" : 2.045,
+    "interestRate" : 1.99,
     "term": 35,
-    "dateOfFirstPayment": "2016-06-21"
+    "dateOfFirstPayment": "2016-06-21",
+    "payment": 1004.21
+  },{
+    "accountNumber": "6346-mortgage-1",
+    "bankId": "321177722",
+    "originalPrincipal": 396720,
+    "interestRate" : 3.75,
+    "term": 360,
+    "dateOfFirstPayment": "2017-02-01",
+    "payment": 2000
+  },{
+    "accountNumber": "6346-mortgage-2",
+    "bankId": "321177722",
+    "originalPrincipal": 74385,
+    "interestRate" : 4.00,
+    "term": 360,
+    "dateOfFirstPayment": "2017-02-01",
+    "payment": 505.13
+  },{
+    "accountNumber": "refinance",
+    "bankId": "321177722",
+    "originalPrincipal": 165000,
+    "interestRate" : 3.375,
+    "term": 360,
+    "dateOfFirstPayment": "2017-02-01",
+    "payment": 729.46
   }
 ]

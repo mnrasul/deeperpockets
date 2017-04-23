@@ -35,6 +35,10 @@ public class Loan {
 
     @NonNull
     @Getter
+    private final double payment;
+
+    @NonNull
+    @Getter
     private final LoanDate dateOfFirstPayment;
 
 
