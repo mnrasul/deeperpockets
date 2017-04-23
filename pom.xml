@@ -98,10 +98,9 @@
         <!--</dependency>-->
 
         <dependency>
-            <groupId>co.davidarmstrong</groupId>
+            <groupId>com.github.mnrasul</groupId>
             <artifactId>jmortgage</artifactId>
-            <version>1.0.1-SNAPSHOT</version>
-            <scope>provided</scope>
+            <version>jmortgage-1.0.1-SNAPSHOT</version>
         </dependency>
 
 		<dependency>
