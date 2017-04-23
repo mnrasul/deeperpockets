@@ -14,10 +14,10 @@ import co.da.jmtg.pmt.PmtPeriod;
 import co.da.jmtg.pmt.extra.ExtraPmt;
 import co.da.jmtg.pmt.extra.ExtraPmts;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 
 import javax.ws.rs.GET;
@@ -91,9 +91,9 @@ public class Networth {
         for (LocalDate date : amortCalculator1.getTable().keySet()) {
             if (date.isAfter(today)){
                 log.info(loan.getAccountNumber() + " " + today.toString("yyyy-MM-dd"));
-                return new Pair<>(loan.getAccountNumber(), amortCalculator1.getTable().get(date).getBalance());
+                return  Pair.of(loan.getAccountNumber(), amortCalculator1.getTable().get(date).getBalance());
             }
         }
-        return new Pair<>("", 0.0);
+        return Pair.of("", 0.0);
     }
 }
