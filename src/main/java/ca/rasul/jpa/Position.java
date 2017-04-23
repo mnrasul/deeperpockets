@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import javax.persistence.Entity;
+import javax.persistence.Id;
 import javax.persistence.Table;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -16,6 +17,7 @@ import java.util.Date;
 @Data
 @Builder(builderMethodName = "build")
 public class Position {
+    @Id
     private final long id;
     private final String account;
     private final String ticker;

@@ -39,14 +39,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @EnableJpaRepositories
@@ -191,38 +192,38 @@ public class DeeperpocketsApplication {
         return calendar.getTime();
     }
 
-    @Bean
-    public CommandLineRunner loadPositions(){
-        return (String... strings) -> {
-            File file = new File("/Users/nasir/Documents/stocks/Portfolio-My Portfolio.csv");
-            List<Position> inputList = new ArrayList<Position>();
-            Random random = new Random();
-            try{
-//            File inputF = new File(inputFilePath);
-                InputStream inputFS = new FileInputStream(file);
-                BufferedReader br = new BufferedReader(new InputStreamReader(inputFS));
-                // skip the header of the csv
-                inputList = br.lines().skip(1).map((line) -> {
-
-                            String[] p = line.split(",");// a CSV has comma separated lines
-                            Position item = Position.builder()
-                                    .ticker(p[0])
-                                    .id(random.nextLong())
-                                    .quantity(Integer.parseInt(p[5]))
-                                    .build();
-                            return  item;
-                        }
-
-
-                )
-                        .collect(Collectors.toList());
-                br.close();
-            } catch (IOException e) {
-                log.error(e.getLocalizedMessage());
-            }
-        };
-
-    }
+//    @Bean
+//    public CommandLineRunner loadPositions(){
+//        return (String... strings) -> {
+//            File file = new File("/Users/nasir/Documents/stocks/Portfolio-My Portfolio.csv");
+//            List<Position> inputList = new ArrayList<Position>();
+//            Random random = new Random();
+//            try{
+////            File inputF = new File(inputFilePath);
+//                InputStream inputFS = new FileInputStream(file);
+//                BufferedReader br = new BufferedReader(new InputStreamReader(inputFS));
+//                // skip the header of the csv
+//                inputList = br.lines().skip(1).map((line) -> {
+//
+//                            String[] p = line.split(",");// a CSV has comma separated lines
+//                            Position item = Position.builder()
+//                                    .ticker(p[0])
+//                                    .id(random.nextLong())
+//                                    .quantity(Integer.parseInt(p[5]))
+//                                    .build();
+//                            return  item;
+//                        }
+//
+//
+//                )
+//                        .collect(Collectors.toList());
+//                br.close();
+//            } catch (IOException e) {
+//                log.error(e.getLocalizedMessage());
+//            }
+//        };
+//
+//    }
 
     private void processBankTransactions(ResponseMessageSet messageSet) throws ParseException, IOException {
         if (!(messageSet instanceof BankingResponseMessageSet)) {

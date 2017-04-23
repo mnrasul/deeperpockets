@@ -6,7 +6,6 @@ import com.webcohesion.ofx4j.client.impl.FinancialInstitutionServiceImpl;
 import com.webcohesion.ofx4j.domain.data.banking.AccountType;
 import com.webcohesion.ofx4j.domain.data.banking.BankAccountDetails;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -17,7 +16,7 @@ import java.net.URL;
 @Slf4j
 public class OFXClientTest {
 
-    @Test
+//    @Test
     public void testDownloadBofa() throws OFXException {
         FinancialInstitutionData data = new FinancialInstitutionData() {
             @Override

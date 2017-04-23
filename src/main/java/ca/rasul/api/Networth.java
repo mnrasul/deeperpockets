@@ -28,4 +28,10 @@ public class Networth {
     public String computeNetworth(){
         return  currencyFormatter.format(transactionRepository.findNetworthOfAssets().add(investmentRepository.findNetworthOfInvestments()));
     }
+
+    @GET
+    @Path("loans")
+    public String loans(){
+        return "9";
+    }
 }
