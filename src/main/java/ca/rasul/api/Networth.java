@@ -27,6 +27,9 @@ import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Nasir Rasul {@literal nasir@rasul.ca}
@@ -51,11 +54,16 @@ public class Networth {
     @GET
     @Path("loans")
     public String loans() throws IOException {
-        List<Pair<String, Double>> result = new ArrayList<>();
+        List<NetworthResponse> result = new ArrayList<>();
         for(Loan loan: loadLoans()){
-            result.add(determineCapitalizationSchedule(loan));
+            Pair<String, Double> pair = determineCapitalizationSchedule(loan);
+            result.add(new NetworthResponse(pair.getFirst(),pair.getSecond(), loan.getAccountType()));
         }
-        return objectMapper.writeValueAsString(result);
+        Stream<NetworthResponse> stream = result.stream();
+        Map<AccountType, Double> collect = stream.parallel()
+                .collect(Collectors.groupingBy(NetworthResponse::getType,
+                        Collectors.summingDouble(NetworthResponse::getBalance)));
+        return objectMapper.writeValueAsString(collect);
     }
 
     private List<Loan> loadLoans() throws IOException {

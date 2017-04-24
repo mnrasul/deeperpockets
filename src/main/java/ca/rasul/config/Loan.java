@@ -1,5 +1,6 @@
 package ca.rasul.config;
 
+import ca.rasul.api.AccountType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -41,5 +42,8 @@ public class Loan {
     @Getter
     private final LoanDate dateOfFirstPayment;
 
+    @NonNull
+    @Getter
+    private final AccountType accountType;
 
 }
